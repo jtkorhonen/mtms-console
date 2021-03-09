@@ -12,8 +12,8 @@ import asyncio
 import urwid
 import urwid.curses_display
 from variable import Variable, StateVariable, AutomaticStateVariable  # noqa: F401
-from model import MtmsModel
-from ui import MtmsUi
+from model import create_mtms_model
+from ui import create_mtms_ui
 
 VERSION = "0.0.1"
 
@@ -46,6 +46,7 @@ def setup_logging():
 
 setup_logging()
 logger = logging.getLogger(__name__)
+logger.info(f"Log started on {datetime.datetime.now().isoformat()}.")
 
 
 def exit_handler(signal_received, frame):
@@ -70,10 +71,10 @@ def run_ui():
             raise urwid.ExitMainLoop()
 
     # Create model
-    mtms_model = MtmsModel()
+    mtms_model = create_mtms_model()
 
     # Create CLI
-    mtms_ui = MtmsUi(model=mtms_model, version=VERSION)
+    mtms_ui = create_mtms_ui(model=mtms_model, version=VERSION)
 
     # Start loop
     asyncio_loop = asyncio.get_event_loop()

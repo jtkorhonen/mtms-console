@@ -3,6 +3,10 @@
 from urllib.parse import urlparse
 
 
+class ValidationError(Exception):
+    pass
+
+
 def validate_url(url, default_scheme='https'):
     if not isinstance(url, str):
         return None
@@ -12,5 +16,5 @@ def validate_url(url, default_scheme='https'):
 
     parse_result = urlparse(url)
     if not all([parse_result.netloc, parse_result.scheme]):
-        return None
+        raise ValidationError(f"Malformed url=\"{url}\".")
     return f"{parse_result.scheme}://{parse_result.netloc}{parse_result.path}"
