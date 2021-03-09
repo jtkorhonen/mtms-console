@@ -15,6 +15,7 @@ import asyncio
 import urwid
 import urwid.curses_display
 
+from variable import Variable, StateVariable, AutomaticStateVariable
 
 VERSION = "0.0.1"
 
@@ -25,14 +26,8 @@ hr = urwid.Divider('-')
 
 def logger_setup():
     """Sets up a logger instance.
-
-    Notes
-    -----
-    Exposes a global `logger` instance.
     """
-    global logger
-
-    logpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "logs")
+    logpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../logs")
     if not os.path.exists(logpath):
         print(
             f"Error. Log directory ({logpath}) does not exist. Please create manually first.")
@@ -54,24 +49,14 @@ def logger_setup():
     os.symlink(os.path.join(logpath, logfile),
                os.path.join(logpath, current_logfile))
 
+    return logger
+
 
 def exit_handler(signal_received, frame):
     logger.info("SIGINT or Ctrl+C detected. Exiting.")
     raise urwid.ExitMainLoop()
 
 ### Exceptions and Custom Classes ##############################################
-
-
-class ValidationError(Exception):
-    pass
-
-
-class State(Enum):
-    UNINITIALIZED = 0
-    RED = 1
-    YELLOW = 2
-    GREEN = 3
-    BLUE = 4
 
 
 class ConnectionStatus(Enum):
@@ -83,188 +68,6 @@ class ConnectionStatus(Enum):
     CANCELLING = 4
 
 ### Variable and Sub-Classes ###################################################
-
-
-class Variable():
-    """A typed variable that updates automatically.
-
-    Raises
-    ------
-    ValidationError if validation of `value` returns False.
-
-    Notes
-    -----
-    Relies on global `logger` instance for logging. Make sure it exists before
-    instantiating.
-    """
-
-    def __init__(self,
-                 value: Any,
-                 on_value_changed: Callable[[Variable, Any, Any], None] = None,
-                 formatter: Callable[[Variable, Any], Any] = None,
-                 validator: Callable[[Variable, Any], bool] = None,
-                 ) -> None:
-        self._on_value_changed = set()
-        if on_value_changed:
-            self._on_value_changed.add(on_value_changed)
-        self.formatter = formatter
-        self.validator = validator
-
-        if self.validator and not self.validator(self, value):
-            raise ValidationError(f"validation failed for value \"{value}\".")
-
-        self._value = value
-        self._type = type(value)
-
-    def _on_value_changed_setter(self, value: Callable[[Variable, Any, Any], None]):
-        self._on_value_changed.add(value)
-
-    on_value_changed = property(None, _on_value_changed_setter)
-
-    def _get_value(self) -> Any:
-        return self._value
-
-    def _set_value(self, new_value: Any) -> None:
-        if self._type is None:
-            raise RuntimeWarning(
-                "Setting None value can result in errors later on.")
-            self._type = type(new_value)  # Deferred setting of the type
-        if new_value is not None:   # It is ok to set variable to None
-            assert type(new_value) == self._type
-
-        if self.validator and not self.validator(self, new_value):
-            raise ValidationError(f"validation failed for value \"{new_value}\".")
-
-        old_value = self._value
-        self._value = new_value
-
-        logger.debug(f"Variable \"{self}\" changed from {old_value} to {new_value}.")
-
-        for callback in self._on_value_changed:
-            callback(self, self._value, old_value)
-
-    value = property(_get_value, _set_value)
-
-    def __repr__(self):
-        if self.formatter:
-            try:
-                return self.formatter(self, self._value)
-            except TypeError:
-                return "<Unformattable value>"
-        return str(self._value)
-
-
-class StateVariable(Variable):
-    """A typed variable with a state attached to it."""
-
-    def __init__(self,
-                 value: Any,
-                 state: State = None,
-                 on_state_change: Callable[[StateVariable, Any, Any], None] = None,
-                 **kwargs):
-
-        super().__init__(value, **kwargs)
-        self._state = state or State.UNINITIALIZED
-
-        self.on_state_change = on_state_change
-
-    def _get_state(self):
-        return self._state
-
-    def _set_state(self, new_state):
-        assert type(new_state) == State
-        old_state = self._state
-        self._state = new_state
-
-        logger.debug(f"Variable state changed from \"{old_state}\" to \"{new_state}\".")
-
-        if self.on_state_change:
-            self.on_state_change(self, self._state, old_state)
-
-    state = property(_get_state, _set_state)
-
-
-class AutomaticStateVariable(StateVariable):
-    """A typed state variable with automatic state control."""
-
-    def __init__(self,
-                 value: Any,
-                 green_to_yellow: float = None,
-                 yellow_to_red: float = None,
-                 **kwargs):
-        super().__init__(value, **kwargs)
-
-        if green_to_yellow is not None:
-            self._green_to_yellow = float(green_to_yellow)
-            logger.debug(f"green-to-yellow timeout in \"{self}\" set to {self._green_to_yellow} s.")
-        else:
-            self._green_to_yellow = None
-        self._green_to_yellow_handle = None
-
-        if yellow_to_red is not None:
-            self._yellow_to_red = float(yellow_to_red)
-            logger.debug(f"yellow-to-red timeout in \"{self}\" set to {self._yellow_to_red} s.")
-        else:
-            self._yellow_to_red = None
-        self._yellow_to_red_handle = None
-
-    @property
-    def green_to_yellow(self):
-        return self._green_to_yellow
-
-    @green_to_yellow.setter
-    def green_to_yellow(self, new_value):
-        if new_value is None:
-            self._green_to_yellow = None
-        else:
-            self._green_to_yellow = float(new_value)
-            logger.debug(f"green-to-yellow timeout in \"{self}\" set to {self._green_to_yellow} s.")
-
-    @property
-    def yellow_to_red(self):
-        return self._yellow_to_red
-
-    @yellow_to_red.setter
-    def yellow_to_red(self, new_value):
-        if new_value is None:
-            self._yellow_to_red = None
-        else:
-            self._yellow_to_red = float(new_value)
-            logger.debug(f"yellow-to-red timeout in \"{self}\" set to {self._yellow_to_red} s.")
-
-    def _set_state(self, new_state: State) -> None:
-        super()._set_state(new_state)
-
-        # Cancel existing callbacks
-        if (self._green_to_yellow_handle and
-                not self._green_to_yellow_handle.cancelled()):
-            self._green_to_yellow_handle.cancel()
-
-        if (self._yellow_to_red_handle and
-                not self._yellow_to_red_handle.cancelled()):
-            self._yellow_to_red_handle.cancel()
-
-        if new_state == State.GREEN and self.green_to_yellow:
-            loop = asyncio.get_running_loop()
-
-            self._green_to_yellow_handle = loop.call_later(
-                self.green_to_yellow,
-                lambda self: self._set_state(State.YELLOW), self)
-
-        if new_state == State.YELLOW and self.yellow_to_red:
-            loop = asyncio.get_running_loop()
-
-            self._yellow_to_red_handle = loop.call_later(
-                self.yellow_to_red,
-                lambda self: self._set_state(State.RED), self)
-
-    state = property(StateVariable._get_state, _set_state)
-
-    def _set_value(self, new_value: Any) -> None:
-        super()._set_value(new_value)
-        self.state = State.GREEN
-
-    value = property(Variable._get_value, _set_value)
 
 
 def validate_url(url, default_scheme='https'):
@@ -794,7 +597,8 @@ def run_ui():
 
 
 if __name__ == "__main__":
-    logger_setup()   # Side effect: exposes `logger`
+    global logger
+    logger = logger_setup()   # Side effect: exposes `logger`
     logger.info("Starting main program.")
     signal(SIGINT, exit_handler)   # Attach an exit listener
     run_ui()
