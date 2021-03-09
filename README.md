@@ -6,9 +6,4 @@ pipenv install --dev
 
 ## Running
 
-pipenv shell
-python mtms_cli.py
-
-## Running (alternative)
-
-pipenv run python mtms_cli.py
+./bin/mtms_cli.sh
