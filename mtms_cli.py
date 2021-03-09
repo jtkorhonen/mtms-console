@@ -706,7 +706,7 @@ class MtmsCli(urwid.WidgetWrap):
 
         # Title
         self.title_txt = urwid.Text(f"mTMS CLI version {VERSION}.")
-        self.subtitle_txt = urwid.Text("(c) 2021 Aalto University and Juuso Korhonen")
+        self.subtitle_txt = urwid.Text("(c) 2021 Aalto University and Juuso Korhonen (MIT License)")
 
         # Exit button
         self.exit_btn = urwid.Button("Exit")
