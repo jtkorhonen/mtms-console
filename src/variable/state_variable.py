@@ -3,10 +3,10 @@
 from __future__ import annotations
 from typing import Callable, Any
 from enum import Enum
-from .helpers import get_logger
+import logging
 from . import Variable
 
-logger = get_logger()
+logger = logging.getLogger(__name__)
 
 
 class State(Enum):

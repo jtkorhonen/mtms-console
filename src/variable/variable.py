@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 from typing import Callable, Any
-from .helpers import get_logger
+import logging
 
-logger = get_logger()
+logger = logging.getLogger(__name__)
 
 
 class ValidationError(Exception):
