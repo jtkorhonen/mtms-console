@@ -15,11 +15,14 @@ from variable import Variable, StateVariable, AutomaticStateVariable  # noqa: F4
 from model import create_mtms_model
 from ui import create_mtms_ui
 
-VERSION = "0.0.1"
 
-
-def setup_logging():
+def setup_logging() -> str:
     """Sets up a logger instance.
+
+    Returns
+    -------
+    logpath: str
+        Path of the logfile.
     """
     logpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../logs")
     if not os.path.exists(logpath):
@@ -43,8 +46,10 @@ def setup_logging():
         os.remove(latest_logfile)
     os.symlink(logfile, latest_logfile)
 
+    return logfile
 
-setup_logging()
+
+logfile = setup_logging()
 logger = logging.getLogger(__name__)
 logger.info(f"Log started on {datetime.datetime.now().isoformat()}.")
 
@@ -52,8 +57,6 @@ logger.info(f"Log started on {datetime.datetime.now().isoformat()}.")
 def exit_handler(signal_received, frame):
     logger.info("SIGINT or Ctrl+C detected. Exiting.")
     raise urwid.ExitMainLoop()
-
-### Run function ###############################################################
 
 
 def run_ui():
@@ -70,19 +73,23 @@ def run_ui():
 
             raise urwid.ExitMainLoop()
 
+    # Set up asyncio loop
+    asyncio_loop = asyncio.get_event_loop()
+
     # Create model
     mtms_model = create_mtms_model()
 
     # Create CLI
-    mtms_ui = create_mtms_ui(model=mtms_model, version=VERSION)
+    mtms_ui = create_mtms_ui(model=mtms_model)
 
     # Start loop
-    asyncio_loop = asyncio.get_event_loop()
+
     event_loop = urwid.AsyncioEventLoop(loop=asyncio_loop)
     loop = urwid.MainLoop(mtms_ui,
                           event_loop=event_loop,
                           screen=urwid.raw_display.Screen(),
                           unhandled_input=lambda key: asyncio.create_task(exit_on_q(key)))
+
     loop.run()
 
 

@@ -4,6 +4,6 @@ from .mtms_ui import MtmsUi
 from model import MtmsModel
 
 
-def create_mtms_ui(model: MtmsModel, version: str):
-    mtms_ui = MtmsUi(model=model, version=version)
+def create_mtms_ui(model: MtmsModel):
+    mtms_ui = MtmsUi(model=model)
     return mtms_ui
