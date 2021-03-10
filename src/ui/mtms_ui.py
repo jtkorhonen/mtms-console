@@ -1,25 +1,24 @@
 #!/bin/env python3
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-import datetime
 import urwid
 import asyncio
 import logging
 from model import MtmsModel
-from .helpers import div, hr
-from .widgets import ConnectedText
+from .helpers import div, get_logger_filename
 from .panels import ControlPanel, StatusPanel, LogPanel
 
 logger = logging.getLogger(__name__)
 
 
 class MtmsUi(urwid.WidgetWrap):
-    def __init__(self, model: MtmsModel, version: str):
+    VERSION = "0.0.1"
+
+    def __init__(self, model: MtmsModel):
         self.model = model
-        self.version = version
 
         # Title
-        self.title_txt = urwid.Text(f"mTMS CLI version {version}.")
+        self.title_txt = urwid.Text(f"mTMS Console UI, Version {self.VERSION}.")
         self.subtitle_txt = urwid.Text("(c) 2021 Aalto University and Juuso Korhonen (MIT License)")
 
         # Exit button
@@ -46,7 +45,7 @@ class MtmsUi(urwid.WidgetWrap):
 
         self.header_widget = urwid.Filler(urwid.GridFlow([self.title_txt, self.subtitle_txt], 50, 3, 1, 'left'))
         self.content_widget = urwid.LineBox(urwid.Filler(self.content, valign='top', bottom=1))
-        self.log_widget = LogPanel(model=self.model)
+        self.log_widget = LogPanel(model=self.model, logfile=get_logger_filename())
 
         self.main_ui = urwid.Pile([
             (1, self.header_widget),

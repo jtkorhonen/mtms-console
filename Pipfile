@@ -9,6 +9,7 @@ urwid = "*"
 [dev-packages]
 pylint = "*"
 autopep8 = "*"
+ipython = "*"
 
 [requires]
 python_version = "3.8"

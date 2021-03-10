@@ -56,6 +56,12 @@ class EnabledEdit(urwid.WidgetWrap):
         key = super().keypress(size, key)
 
         if key and key in ('enter', 'down', 'up'):
-            self._emit('enter', self.field_edt.edit_text)
+            old_value = self._text
+            new_value = self.field_edt.edit_text
+            self._emit('enter', new_value, old_value)
+            self.text = new_value
+        elif key and key in ('esc',):
+            old_value = self._text
+            self.text = old_value
 
         return key

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class ServerUrlEdit(urwid.WidgetWrap):
     def __init__(self, model: MtmsModel, enabled: bool = True, caption: str = "Server URL : "):
         self.model = model
-        self.server_url_edt = EnabledEdit(caption=caption, text=self.model.connection.url, enabled=enabled)
+        self.server_url_edt = EnabledEdit(caption=caption, text=self.model.server_url, enabled=enabled)
 
         def on_server_url_changed(caller, value, old_value):
             logger.debug(f"on_server_url_changed called with in \"{self}\" caller=\"{caller}\", value=\"{value}\", old_value=\"{old_value}\".")
@@ -23,7 +23,9 @@ class ServerUrlEdit(urwid.WidgetWrap):
 
         self.model.server_url.on_value_changed = on_server_url_changed
 
-        def on_value_changed(caller, value):
+        def on_value_changed(caller, value, old_value):
+            if value == old_value:
+                return
             logger.debug(f"on_value_changed called with in \"{self}\" btn=\"{caller}\", value=\"{value}\".")
             old_value = self.model.server_url.value
             try:
